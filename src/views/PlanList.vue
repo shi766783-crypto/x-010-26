@@ -2,7 +2,7 @@
 import { useRouter } from 'vue-router'
 import { useTravelStore } from '../stores/travel'
 import { formatDate, formatMoney } from '../utils/format'
-import { planTotalSpend, planPackingRate } from '../services/selectors'
+import { planTotalSpend, planPackingRate, planCover } from '../services/selectors'
 
 const store = useTravelStore()
 const router = useRouter()
@@ -28,7 +28,7 @@ function onDelete(plan) {
     <div v-if="store.plans.length" class="plan-grid">
       <div v-for="plan in store.plans" :key="plan.id" class="plan-card" @click="router.push(`/plans/${plan.id}`)">
         <div class="plan-cover">
-          <img v-if="plan.photo" :src="plan.photo" alt="目的地照片" />
+          <img v-if="planCover(plan)" :src="planCover(plan)" alt="计划封面" />
           <div v-else class="plan-cover-placeholder">{{ plan.destination.slice(0, 1) }}</div>
         </div>
         <div class="plan-body">

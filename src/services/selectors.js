@@ -43,6 +43,11 @@ export function planTodoProgress(plan) {
   return Math.round((todos.filter((t) => t.done).length / todos.length) * 100)
 }
 
+// 计划封面：总结精选照片的第一张固定为封面，未写总结时回退到计划照片
+export function planCover(plan) {
+  return plan.summary?.photos?.[0] || plan.photo || ''
+}
+
 // 判断待办是否全部完成
 export function planTodosAllDone(plan) {
   const todos = plan.todos || []

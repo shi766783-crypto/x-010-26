@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTravelStore } from '../stores/travel'
 import { formatDate, formatMoney } from '../utils/format'
-import { planTotalSpend, planPackingRate, planTodoProgress } from '../services/selectors'
+import { planTotalSpend, planPackingRate, planTodoProgress, planCover } from '../services/selectors'
 import LuggageList from '../components/plan/LuggageList.vue'
 import TodoList from '../components/plan/TodoList.vue'
 import RecordSection from '../components/plan/RecordSection.vue'
@@ -50,7 +50,7 @@ function onDelete() {
         </p>
       </div>
       <div class="head-right">
-        <img v-if="plan.photo" :src="plan.photo" class="detail-photo" alt="目的地照片" />
+        <img v-if="planCover(plan)" :src="planCover(plan)" class="detail-photo" alt="计划封面" />
         <button class="btn btn-ghost btn-sm" @click="router.push(`/plans/${plan.id}/edit`)">编辑</button>
         <button class="btn btn-danger btn-sm" @click="onDelete">删除</button>
       </div>

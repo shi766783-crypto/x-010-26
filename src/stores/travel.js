@@ -33,7 +33,7 @@ export const useTravelStore = defineStore('travel', {
       this.plans = planStorage.read([])
     },
     persist() {
-      planStorage.write(this.plans)
+      return planStorage.write(this.plans)
     },
 
     // ===== 出行计划 =====
@@ -165,9 +165,19 @@ export const useTravelStore = defineStore('travel', {
     },
 
     // ===== 出行总结 =====
+    // 返回 { ok, isQuotaError }；持久化失败时回滚为原总结，保证内存与本地存储一致
     saveSummary(planId, summary) {
       const plan = this.planById(planId)
-      if (plan) plan.summary = summary
+      if (!plan) return { ok: false, isQuotaError: false }
+
+      const previous = plan.summary
+      plan.summary = summary
+      const result = this.persist()
+      if (!result.ok) {
+        plan.summary = previous
+        this.persist()
+      }
+      return result
     },
   },
 })

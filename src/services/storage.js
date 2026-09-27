@@ -13,11 +13,21 @@ export function createStorage(namespace) {
         return fallback
       }
     },
+    // 返回写入结果，配额不足时由调用方提示用户，避免静默丢失数据
     write(value) {
       try {
         localStorage.setItem(key, JSON.stringify(value))
+        return { ok: true }
       } catch (error) {
         console.error(`[storage] 写入 ${key} 失败`, error)
+        return {
+          ok: false,
+          isQuotaError:
+            error?.name === 'QuotaExceededError' ||
+            error?.code === 22 ||
+            error?.code === 1014,
+          error,
+        }
       }
     },
     remove() {
