@@ -19,6 +19,11 @@ const form = reactive({
 
 const fileInput = ref(null)
 const saved = ref(false)
+const saveFailed = ref(false)
+
+// 拖拽排序状态：当前拖起与悬停的照片下标
+const dragIndex = ref(-1)
+const dragOverIndex = ref(-1)
 
 function onPhoto(event) {
   const file = event.target.files[0]
@@ -31,22 +36,64 @@ function onPhoto(event) {
   event.target.value = ''
 }
 
+// 删除后其余照片自动前移，第一张始终是封面
 function removePhoto(index) {
   form.photos.splice(index, 1)
 }
 
-function save() {
-  if (!form.rating) {
-    saved.value = false
-    return
+function onDragStart(index, event) {
+  dragIndex.value = index
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', String(index))
+}
+
+function onDragOver(index, event) {
+  event.preventDefault()
+  event.dataTransfer.dropEffect = 'move'
+  dragOverIndex.value = dragIndex.value !== -1 && dragIndex.value !== index ? index : -1
+}
+
+function onGridDragLeave(event) {
+  if (!event.currentTarget.contains(event.relatedTarget)) {
+    dragOverIndex.value = -1
   }
-  store.saveSummary(props.plan.id, {
+}
+
+function onDrop(index, event) {
+  event.preventDefault()
+  const from = dragIndex.value
+  if (from !== -1 && from !== index) {
+    const [moved] = form.photos.splice(from, 1)
+    form.photos.splice(index, 0, moved)
+  }
+  resetDrag()
+}
+
+function onDragEnd() {
+  resetDrag()
+}
+
+function resetDrag() {
+  dragIndex.value = -1
+  dragOverIndex.value = -1
+}
+
+function save() {
+  saved.value = false
+  saveFailed.value = false
+  if (!form.rating) return
+  const ok = store.saveSummary(props.plan.id, {
     rating: form.rating,
     highlights: form.highlights,
     regrets: form.regrets,
     suggestions: form.suggestions,
     photos: [...form.photos],
   })
+  if (!ok) {
+    // 存储空间不足：表单内容保留，提示用户删减照片后再保存
+    saveFailed.value = true
+    return
+  }
   saved.value = true
   setTimeout(() => (saved.value = false), 2000)
 }
@@ -76,13 +123,26 @@ function save() {
 
     <div class="form-group">
       <label class="form-label">精选照片</label>
-      <div class="photo-grid">
-        <div v-for="(photo, i) in form.photos" :key="i" class="photo">
+      <div class="photo-grid" @dragleave="onGridDragLeave">
+        <div
+          v-for="(photo, i) in form.photos"
+          :key="i"
+          class="photo"
+          :class="{ dragging: dragIndex === i, 'drag-over': dragOverIndex === i }"
+          draggable="true"
+          title="拖动调整顺序"
+          @dragstart="onDragStart(i, $event)"
+          @dragover="onDragOver(i, $event)"
+          @drop="onDrop(i, $event)"
+          @dragend="onDragEnd"
+        >
           <img :src="photo" alt="精选照片" />
-          <button type="button" class="photo-remove" @click="removePhoto(i)">×</button>
+          <span v-if="i === 0" class="photo-cover">封面</span>
+          <button type="button" class="photo-remove" title="删除照片" @click="removePhoto(i)">×</button>
         </div>
         <button type="button" class="photo-add" @click="fileInput.click()">+</button>
       </div>
+      <p class="photo-tip text-muted">拖动可调整顺序，第一张照片将作为封面展示</p>
       <input ref="fileInput" type="file" accept="image/*" hidden @change="onPhoto" />
     </div>
 
@@ -91,6 +151,9 @@ function save() {
       <span v-if="saved" class="text-success">已保存</span>
       <span v-if="!form.rating" class="text-warning">请先选择评分</span>
     </div>
+    <p v-if="saveFailed" class="save-error">
+      存储空间不足，本次保存失败。请删减部分精选照片后重新保存，已填写的内容不会丢失。
+    </p>
   </div>
 </template>
 
@@ -107,12 +170,36 @@ function save() {
   height: 76px;
   border-radius: var(--radius-sm);
   overflow: hidden;
+  cursor: grab;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, opacity 0.15s;
+}
+
+.photo.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.photo.drag-over {
+  border-color: var(--primary);
 }
 
 .photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
+}
+
+.photo-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 1px 7px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 11px;
+  border-bottom-right-radius: 8px;
 }
 
 .photo-remove {
@@ -141,5 +228,18 @@ function save() {
 .photo-add:hover {
   border-color: var(--primary);
   color: var(--primary);
+}
+
+.photo-tip {
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.save-error {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-light);
+  color: var(--danger);
 }
 </style>

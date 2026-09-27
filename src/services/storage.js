@@ -13,11 +13,14 @@ export function createStorage(namespace) {
         return fallback
       }
     },
+    // 返回是否写入成功：配额超限等失败场景由调用方决定如何提示，不能静默吞掉
     write(value) {
       try {
         localStorage.setItem(key, JSON.stringify(value))
+        return true
       } catch (error) {
         console.error(`[storage] 写入 ${key} 失败`, error)
+        return false
       }
     },
     remove() {

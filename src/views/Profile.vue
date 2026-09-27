@@ -57,7 +57,13 @@ const summarized = computed(() => store.plans.filter((p) => p.summary))
       <h3 class="card-title">出行总结</h3>
       <div v-if="summarized.length" class="summary-list">
         <div v-for="p in summarized" :key="p.id" class="summary-item">
-          <div>
+          <img
+            v-if="p.summary.photos && p.summary.photos.length"
+            :src="p.summary.photos[0]"
+            class="summary-cover"
+            alt="总结封面"
+          />
+          <div class="summary-info">
             <strong>{{ p.name }}</strong>
             <span class="text-muted">{{ p.destination }}</span>
           </div>
@@ -119,6 +125,19 @@ const summarized = computed(() => store.plans.filter((p) => p.summary))
 .summary-item div {
   display: flex;
   flex-direction: column;
+}
+
+.summary-cover {
+  width: 64px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.summary-info {
+  flex: 1;
 }
 
 .summary-item .text-muted {

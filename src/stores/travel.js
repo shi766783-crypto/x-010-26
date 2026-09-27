@@ -33,7 +33,7 @@ export const useTravelStore = defineStore('travel', {
       this.plans = planStorage.read([])
     },
     persist() {
-      planStorage.write(this.plans)
+      return planStorage.write(this.plans)
     },
 
     // ===== 出行计划 =====
@@ -165,9 +165,19 @@ export const useTravelStore = defineStore('travel', {
     },
 
     // ===== 出行总结 =====
+    // 返回是否保存成功。存储写入失败（如配额超限）时回滚到旧值，
+    // 保证内存与 localStorage 一致，由界面提示用户删减后重试，不静默丢数据
     saveSummary(planId, summary) {
       const plan = this.planById(planId)
-      if (plan) plan.summary = summary
+      if (!plan) return false
+      const previous = plan.summary
+      plan.summary = summary
+      if (!this.persist()) {
+        plan.summary = previous
+        this.persist()
+        return false
+      }
+      return true
     },
   },
 })
